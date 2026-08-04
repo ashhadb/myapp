@@ -1,34 +1,21 @@
-
 import streamlit as st
 import numpy as np
 import pandas as pd
-from google.colab import drive # For mounting Google Drive in Colab
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-# Mount Google Drive (this will prompt for authentication if not already mounted by this process)
-@st.cache_resource
-def mount_drive():
-    try:
-        drive.mount('/content/drive', force_remount=True)
-        return True
-    except Exception as e:
-        st.error(f"Could not mount Google Drive: {e}. Please ensure you're running in Colab and grant permissions.")
-        return False
-
-if mount_drive():
-    file_path = '/content/drive/MyDrive/Datasets/diabetes.csv'
-else:
-    st.stop() # Stop the app if drive cannot be mounted
+# Path to dataset (Raw GitHub URL or relative path)
+# Replace this URL with your exact raw GitHub link if using remote hosted repo
+DATA_URL = "https://raw.githubusercontent.com/plotly/datasets/master/diabetes.csv"
 
 @st.cache_data
 def load_data(path):
     try:
         return pd.read_csv(path)
     except FileNotFoundError:
-        st.error(f"Error: Dataset not found at {path}. Please check the path and ensure your Google Drive is mounted correctly.")
+        st.error(f"Error: Dataset not found at {path}. Check your path or URL.")
         st.stop()
     except Exception as e:
         st.error(f"Error loading dataset: {e}")
@@ -36,7 +23,8 @@ def load_data(path):
 
 @st.cache_resource
 def train_and_evaluate_models():
-    diabetes_dataset = load_data(file_path)
+    # Load dataset directly from source
+    diabetes_dataset = load_data(DATA_URL)
 
     X = diabetes_dataset.drop(columns='Outcome')
     Y = diabetes_dataset['Outcome']
@@ -47,6 +35,7 @@ def train_and_evaluate_models():
     nb = GaussianNB()
     nb.fit(X_train, Y_train)
     Y_pred_nb = nb.predict(X_test)
+    
     accuracy_nb = accuracy_score(Y_test, Y_pred_nb)
     precision_nb = precision_score(Y_test, Y_pred_nb, zero_division=0)
     recall_nb = recall_score(Y_test, Y_pred_nb, zero_division=0)
@@ -57,6 +46,7 @@ def train_and_evaluate_models():
     knn = KNeighborsClassifier(n_neighbors=k)
     knn.fit(X_train, Y_train)
     Y_pred_knn = knn.predict(X_test)
+    
     accuracy_knn = accuracy_score(Y_test, Y_pred_knn)
     precision_knn = precision_score(Y_test, Y_pred_knn, zero_division=0)
     recall_knn = recall_score(Y_test, Y_pred_knn, zero_division=0)
@@ -98,7 +88,10 @@ selected_model = st.selectbox(
 st.write(f"### Metrics for {selected_model}:")
 
 if selected_model:
-    st.metric(label="Accuracy", value=f"{metrics_data[selected_model]['Accuracy']:.3f}")
-    st.metric(label="Precision", value=f"{metrics_data[selected_model]['Precision']:.3f}")
-    st.metric(label="Recall", value=f"{metrics_data[selected_model]['Recall']:.3f}")
-    st.metric(label="F1 Score", value=f"{metrics_data[selected_model]['F1 Score']:.3f}")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric(label="Accuracy", value=f"{metrics_data[selected_model]['Accuracy']:.3f}")
+        st.metric(label="Precision", value=f"{metrics_data[selected_model]['Precision']:.3f}")
+    with col2:
+        st.metric(label="Recall", value=f"{metrics_data[selected_model]['Recall']:.3f}")
+        st.metric(label="F1 Score", value=f"{metrics_data[selected_model]['F1 Score']:.3f}")
